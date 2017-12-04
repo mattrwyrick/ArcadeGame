@@ -1,0 +1,44 @@
+import java.awt.Color;
+import java.io.FileNotFoundException;
+
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+
+public class Main {
+	
+	public static void main(String[] args) throws FileNotFoundException{
+		Main main = new Main();
+		final JFrame mainMenu = new JFrame();
+		mainMenu.setSize(700,250);
+		
+		
+		JPanel mainPanel = new JPanel();
+		mainMenu.add(mainPanel);
+//		mainPanel.setBackground(new Color(169, 69, 19));
+		mainPanel.setBackground(new Color(0,100,0));
+		
+		JLabel playButton = new JLabel(new ImageIcon(System.getProperty("user.dir")+"/src/images/playDefault.png"));
+		ImageIcon defaultImage = new ImageIcon(System.getProperty("user.dir")+"/src/images/playDefault.png");
+		ImageIcon mouseOverImage = new ImageIcon(System.getProperty("user.dir")+"/src/images/playMouseOver.png");
+		playButton.addMouseListener(new PlayListener(playButton,defaultImage,mouseOverImage));
+		mainPanel.add(playButton);
+		
+		JLabel editorButton = new JLabel(new ImageIcon(System.getProperty("user.dir")+"/src/images/editorDefault.png"));
+		defaultImage = new ImageIcon(System.getProperty("user.dir")+"/src/images/editorDefault.png");
+		mouseOverImage = new ImageIcon(System.getProperty("user.dir")+"/src/images/editorMouseOver.png");
+		editorButton.addMouseListener(new EditorListener(editorButton,defaultImage,mouseOverImage));
+		mainPanel.add(editorButton);
+		
+
+		
+		
+		mainMenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		mainMenu.setVisible(true);
+		
+		
+//		WorldFrame frame = new WorldFrame();
+	}
+}

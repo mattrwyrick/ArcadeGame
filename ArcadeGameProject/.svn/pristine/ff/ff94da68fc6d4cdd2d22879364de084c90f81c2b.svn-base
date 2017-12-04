@@ -1,0 +1,26 @@
+import java.awt.event.ActionEvent;
+import java.io.File;
+
+import javax.swing.AbstractAction;
+
+
+public class levelAction extends AbstractAction{
+	private int currentLevel;
+	private File files[];
+	private int dl;
+	private WorldComponent game;
+	
+	public levelAction(int dl, File files[], WorldComponent game){
+		this.files = files;
+		this.dl = dl;
+		this.game = game;
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		System.out.println("Changing to next level: "+(this.game.getLevel()+dl+1));
+		this.game.changeLevel(this.game.getSaveData(this.files[this.game.getLevel()+this.dl]),this.dl);
+		this.game.repaint();
+	}
+	
+}

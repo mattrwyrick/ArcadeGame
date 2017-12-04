@@ -1,0 +1,35 @@
+package LevelEditor;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class SaveButtonListener implements ActionListener{
+	private EditorComponent ec;
+
+	public SaveButtonListener (EditorComponent ec){
+		this.ec=ec;
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		String data = "";
+		for (int i = 0; i < 16; i++){
+			for (int j = 0; j < 24; j++){
+				if (this.ec.getSpaces()[i][j].getState()!=0)
+					data +=this.ec.getSpaces()[i][j].getState()+" "+i+" "+j+"\n";
+				if (this.ec.getSpaces()[i][j].getState()==5)
+					data +=1+" "+i+" "+j+"\n";
+			}
+		}
+//		for (String string : this.ec.getSaveData())
+//			data+=string+"\n";
+		System.out.println("Save data copied to clipboard.");
+		StringSelection selection = new StringSelection(data);
+	    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+	    clipboard.setContents(selection, selection);
+	}
+
+}

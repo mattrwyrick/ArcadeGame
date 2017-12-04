@@ -1,0 +1,12 @@
+import java.awt.geom.Point2D;
+
+
+public class Pathway {
+	
+	private boolean[][] map;
+	private Point2D.Double enemyCenter;
+	private WorldComponent game;
+	private Digger digger;
+	
+
+}

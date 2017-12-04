@@ -1,0 +1,122 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+
+import javax.swing.JComponent;
+
+public class Digger extends JComponent implements Entity {
+	private static final double SPEED_SCALE = 1;
+	private Point2D.Double centerPoint;
+	private double size;
+	private double vx;
+	private double vy;
+	private WorldComponent game;
+
+	public Digger(Point2D.Double pt, double size, WorldComponent game) {
+		this.game = game;
+		this.centerPoint = pt;
+//		this.moveCenter(this.size/2,this.size/2);
+		this.vx = 0;
+		this.vy = 0;
+		this.size = size;
+		this.centerPoint.x+=this.size/2;
+		this.centerPoint.y+=this.size/2;
+	}
+	
+	public void shoot(){
+		Point2D.Double pt = new Point2D.Double(this.centerPoint.x+this.size/2,this.centerPoint.y+this.size/2);
+		Bullet bullet = new Bullet(pt,this.size,this.vx*4,this.vy*4, this.game);
+		this.game.getEntitiesToAdd().add(bullet);
+	}
+	
+	public void eatEntity(Entity thing){
+		this.game.addPoints(thing);
+	}
+	
+	public void moveCenter(double dx, double dy){
+		this.centerPoint.x+=dx;
+		this.centerPoint.y+=dy;
+	}
+	
+	public void setSpeed(double vx, double vy){
+		this.vx = this.SPEED_SCALE*vx;
+		this.vy = this.SPEED_SCALE*vy;
+	}
+
+	@Override
+	public void timePassed() {
+		double x = this.centerPoint.x-this.size/2;
+		double y = this.centerPoint.y-this.size/2;
+//		System.out.println("x:"+x+"   y:"+y+"  vx:"+vx+"  vy:"+vy);
+	
+		Point2D.Double nextPoint = new Point2D.Double(
+				this.centerPoint.x + vx,
+				this.centerPoint.y + vy);
+		
+
+		
+		//if point is inside game frame
+		if (this.game.isInside(nextPoint)) {
+
+			if (this.vx != 0 && y % this.size == 0)
+				this.moveCenter(this.vx, this.vy);
+			else {
+				if (y % 50 > 25)
+					this.moveCenter(0, Math.abs(this.vx));
+				else {
+					this.moveCenter(0, -Math.abs(this.vx));
+				}
+			}
+
+			if (this.vy != 0 && x % this.size == 0)
+				this.moveCenter(this.vx, this.vy);
+			else {
+				if (x % 50 > 25)
+					this.moveCenter(Math.abs(this.vy), 0);
+				else {
+					this.moveCenter(-Math.abs(this.vy), 0);
+				}
+			}
+			}
+
+			this.game
+					.makeTunnel(
+							(int) ((this.centerPoint.getX()) / this.size),
+							(int) ((this.centerPoint.getY()) / this.size));
+	}
+
+	@Override
+	public Shape getShape() {
+		double x = this.centerPoint.getX();
+		double y = this.centerPoint.getY();
+		return new Ellipse2D.Double(x-this.size/2,y-this.size/2,this.size,this.size);
+	}
+
+	@Override
+	public Color getColor() {
+		return new Color(130,170,100);
+	}
+	
+
+	public void setCenter(Point2D.Double pt) {
+		this.centerPoint = pt;
+	}
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		return 0;
+	}
+	
+	public Point2D.Double getCenter(){
+		return this.centerPoint;
+	}
+	
+	public double[] getVxy(){
+		double[] num = new double[2];
+		num[0] = this.vx;
+		num[1] = this.vy;
+		return num;
+	}
+}

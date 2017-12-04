@@ -1,0 +1,585 @@
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.ActionEvent;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+import java.util.Scanner;
+
+import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.KeyStroke;
+
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
+
+public class WorldComponent extends JComponent {
+
+	private static boolean isPaused;
+	private JLabel hud;
+	private int size;
+	private int currentLevel;
+	private int score;
+	private int lives = 3;
+	private final int ROWS;
+	private final int COLUMNS;
+	private boolean[][] spaces;
+	private final File[] levels;
+	private List<Entity> entities;
+	private List<Entity> entitiesToRemove;
+	private List<Entity> entitiesToAdd;
+	private boolean isDebug = false;
+	private boolean levelComplete;
+	private ImageIcon dirt = new ImageIcon(System.getProperty("user.dir")
+			+ "/src/images/dirt.png");
+	private ImageIcon dirt2 = new ImageIcon(System.getProperty("user.dir")
+			+ "/src/images/dirt2.png");
+	private int bonusPoints = 0;
+	private int bonusLifePoints = 3000;
+	private boolean muted = false;
+
+	/**
+	 * Sets up main level
+	 * 
+	 * @param size
+	 *            -- size of each square
+	 * @param rows
+	 *            -- how many rows
+	 * @param columns
+	 *            -- how many columns
+	 * @param levels
+	 *            -- list of level save data
+	 */
+	@SuppressWarnings("unused")
+	public WorldComponent(int size, int rows, int columns, File[] levels,
+			JLabel hud) {
+
+
+		// non parameter conditions
+		isPaused = false;
+		this.score = 0;
+		this.currentLevel = 0;
+
+		// parameter conditions
+		this.levels = levels;
+		this.hud = hud;
+		this.size = size;
+		this.ROWS = rows;
+		this.COLUMNS = columns;
+
+		// synchronized lists
+		this.entities = Collections.synchronizedList(new ArrayList<Entity>());
+		this.entitiesToAdd = Collections
+				.synchronizedList(new ArrayList<Entity>());
+		this.entitiesToRemove = Collections
+				.synchronizedList(new ArrayList<Entity>());
+
+		// create blank board
+		this.spaces = new boolean[this.ROWS][this.COLUMNS];
+		for (int i = 0; i < this.ROWS; i++)
+			for (int j = 0; j < this.COLUMNS; j++) {
+				this.spaces[i][j] = false;
+			}
+
+		// add digger and start up game at level 1
+		this.entities.add(new Digger(new Point2D.Double(), this.size, this));
+		this.changeLevel(this.getSaveData(levels[0]), 0);
+		this.setupKeyBindings();
+
+		// make game thread
+		Runnable diggerClock = new Runnable() {
+			private long SPEED_SCALE = 7;
+
+			@Override
+			public void run() {
+				try {
+					while (true) {
+						Thread.sleep(this.SPEED_SCALE);
+						timePassed();
+					}
+				} catch (InterruptedException exception) {
+					// Stop when interrupted
+				}
+			}
+		};
+
+		// run thread
+		new Thread(diggerClock).start();
+	}
+
+	/**
+	 * 
+	 * When Time passes -checks if game is paused -removes given entities -adds
+	 * given entities -checks if level is complete - no emeralds -repaints
+	 * -level changes -changes hud on screen
+	 * 
+	 * @throws InterruptedException
+	 */
+	protected void timePassed() throws InterruptedException {
+
+		// check for pause
+		if (!this.isPaused) {
+			this.updateHud();
+			this.levelComplete = true; // just teasing
+
+			// remove and add entities
+			this.entities.removeAll(this.entitiesToRemove);
+			this.entitiesToRemove.clear();
+			this.entities.addAll(this.entitiesToAdd);
+			this.entitiesToAdd.clear();
+
+			// check for completed level
+			for (Entity entity : this.entities) {
+				entity.timePassed();
+				if (entity.getClass().toString().equals("class Emerald"))
+					this.levelComplete = false;// fix tease
+				// repaints current map
+				// changes hud after check-level change
+			}
+			
+		}
+
+		// changing levels
+		if (levelComplete) {
+			this.hud.setText("Level Complete");
+			Thread.sleep(1000);
+			this.levelComplete = false;
+			if (this.getLevel() == this.levels.length - 1) {
+				System.out.println("Max Level");
+			}
+			System.out.println("Changing to next level: "
+					+ (this.getLevel() + 2));
+			this.changeLevel(
+					this.getSaveData(this.levels[this.getLevel() + 1]), 1);
+		}
+		
+		this.repaint();
+		
+	}
+
+	/**
+	 * 
+	 * updates player HUD on world frame
+	 * 
+	 */
+	public void updateHud() {
+		int levelString = this.currentLevel + 1;
+		String hudText = "    Level: " + levelString
+				+ "     Lives: " + this.lives + "     Score: " + this.score
+				+ "     Weapon: "
+				+ ((Digger) this.entities.get(0)).getShotCooldown();
+		this.hud.setText(hudText);
+	}
+
+	/**
+	 * Iterates through entities list and draws shapes
+	 * 
+	 * Iterates through spaces -dirt = false -tunnel = true
+	 */
+	@Override
+	protected void paintComponent(Graphics g) {
+		// graphics
+		Graphics2D g2 = (Graphics2D) g;
+
+		// draws tunnels and dirt
+		try {
+			// dirt
+			for (int i = 0; i < this.ROWS; i++) {
+				for (int j = 0; j < this.COLUMNS; j++) {
+					if (this.spaces[i][j] == false) {
+						// Rectangle2D.Double rect = new Rectangle2D.Double(j
+						// * this.size, i * this.size, this.size,
+						// this.size);
+						// g2.setColor(new Color(169, 69, 19));
+						// g2.fill(rect);
+
+						// draws nice dir
+						if(this.currentLevel%2==0){
+						g2.drawImage(this.dirt.getImage(), j * this.size, i
+								* this.size, null);
+						}else{
+							g2.drawImage(this.dirt2.getImage(), j*this.size,
+									i * this.size, null);
+						}
+					}
+					// tunnel
+					if (this.spaces[i][j] == true) {
+						Rectangle2D.Double rect = new Rectangle2D.Double(j
+								* this.size, i * this.size, this.size,
+								this.size);
+						g2.setColor(Color.black);
+						g2.fill(rect);
+					}
+				}
+			}
+			// draws entity
+			for (Entity entity : this.entities) {
+
+				if (entity.getColor() == null || entity.getShape() == null) {
+					// continue;
+					if (entity.getImage() == null)
+						continue;
+					g2.drawImage(entity.getImage().getImage(),
+							(int) entity.getCenter().x - this.size / 2,
+							(int) entity.getCenter().y - this.size / 2, null);
+				} else {
+					g2.setColor(entity.getColor());
+					g2.fill(entity.getShape());
+				}
+
+			}
+		} catch (Exception e) {
+			// System.out.print("");
+		}
+
+	}
+
+	/**
+	 * checks if a point is inside of the 16x24 map
+	 * 
+	 * @param point
+	 * @return
+	 */
+	public boolean isInside(Point2D.Double point) {
+
+		if (point.x < this.size / 2 || point.y < this.size / 2) {
+			return false;
+		}
+		if (point.x > (23 * size + this.size / 2)
+				|| point.y > (15 * size + this.size / 2)) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * 
+	 * Scans level files and stores them in ArrayList
+	 * 
+	 * @param file
+	 * @return
+	 */
+	public ArrayList<SaveData> getSaveData(File file) {
+		ArrayList<SaveData> saveData = new ArrayList<SaveData>();
+		int i = 0;
+		int j = 0;
+		int state = 0;
+		try {
+			Scanner scanner = new Scanner(file);
+			while (scanner.hasNextInt()) {
+				state = scanner.nextInt();
+				j = scanner.nextInt();
+				i = scanner.nextInt();
+				saveData.add(new SaveData(new Point2D.Double(i, j), state));
+			}
+		} catch (FileNotFoundException exception) {
+			exception.printStackTrace();
+		}
+		return saveData;
+	}
+
+	/**
+	 * 
+	 * clears previous level & sets up new level
+	 * 
+	 * 
+	 * @param savaData
+	 * @param dl
+	 */
+	public void changeLevel(ArrayList<SaveData> savaData, int dl) {
+		// 0 dirt, 1 tunnel, 2 emerald, 3 gold, 4 digger, 5 enemy creator, 6
+		// nuke, 7 invincible
+		// reset level complete and increment level
+		this.levelComplete = false;
+		this.currentLevel += dl;
+
+		// potential center for digger
+		Point2D.Double pt = new Point2D.Double();
+
+		// removes all entities from previous level
+		for (int i = this.entities.size() - 1; i > 0; i--)
+			this.entities.remove(i);
+
+		// reset whole level to dirt
+		for (int i = 0; i < this.ROWS; i++)
+			for (int j = 0; j < this.COLUMNS; j++)
+				this.spaces[i][j] = false;
+
+		// iterates through data
+		// objects are made based off of numerical value
+		for (SaveData data : savaData) {
+			double xPt = data.getPoint().getX();
+			double yPt = data.getPoint().getY();
+			if (data.getIsTunnel())
+				this.spaces[(int) yPt][(int) xPt] = true;
+			if (data.getState() == 4)
+				pt.setLocation(this.convertGridToPixel(data.getPoint().getX(),
+						data.getPoint().getY()));
+			if (data.getState() == 2)
+				this.entities.add(new Emerald(new Point2D.Double(xPt
+						* this.size, yPt * this.size), this.size,
+						(Digger) this.entities.get(0), this));
+			if (data.getState() == 5)
+				this.entities.add(new EnemyCreator(new Point2D.Double(xPt
+						* this.size, yPt * this.size), this));
+			if (data.getState() == 3)
+				this.entities.add(new Gold(new Point2D.Double(xPt * this.size,
+						yPt * this.size), this.size, this));
+		}
+		// digger center point
+		pt.x += this.size / 2;
+		pt.y += this.size / 2;
+		((Digger) this.entities.get(0)).setCenter(pt);
+		((Digger) this.entities.get(0)).setShotSpeedMultiplier(1);
+		((Digger) this.entities.get(0)).setMoveSpeedMultiplier(1);
+
+		Random rand = new Random();
+		int randUpgrade;
+		for (int i = 0; i < this.ROWS; i++) {
+			for (int j = 0; j < this.COLUMNS; j++) {
+				if (!this.spaces[i][j]) {
+					if (rand.nextInt(200) == 1) {
+						randUpgrade = rand.nextInt(4);
+						switch (randUpgrade) {
+						case 0:
+							this.entities.add(new NukeUpgrade(
+									new Point2D.Double(j * this.size, i
+											* this.size), this.size, this));
+							break;
+						case 1:
+							this.entities.add(new InvincibleUpgrade(
+									new Point2D.Double(j * this.size, i
+											* this.size), this.size, this));
+							break;
+						case 2:
+							this.entities.add(new ShotUpgrade(
+									new Point2D.Double(j * this.size, i
+											* this.size), this.size, this));
+							break;
+						case 3:
+							this.entities.add(new SpeedUpgrade(
+									new Point2D.Double(j * this.size, i
+											* this.size), this.size, this));
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * Key Strokes for digger and game
+	 * 
+	 */
+	private void setupKeyBindings() {
+		System.out.println("Change Level Keys Setup.");
+		int focusType = JComponent.WHEN_IN_FOCUSED_WINDOW;
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("U"),
+				"nextLevel");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("D"),
+				"previousLevel");
+		this.getActionMap().put("nextLevel",
+				new LevelAction(1, this.levels, this));
+		this.getActionMap().put("previousLevel",
+				new LevelAction(-1, this.levels, this));
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("LEFT"),
+				"leftPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("RIGHT"),
+				"rightPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("UP"),
+				"upPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("DOWN"),
+				"downPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("P"), "pause");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("SPACE"),
+				"shoot");
+		this.getActionMap().put("leftPressed",
+				new MoveAction((Digger) this.entities.get(0), -1, 0));
+		this.getActionMap().put("rightPressed",
+				new MoveAction((Digger) this.entities.get(0), 1, 0));
+		this.getActionMap().put("upPressed",
+				new MoveAction((Digger) this.entities.get(0), 0, -1));
+		this.getActionMap().put("shoot",
+				new ShootAction((Digger) this.entities.get(0)));
+		this.getActionMap().put("downPressed",
+				new MoveAction((Digger) this.entities.get(0), 0, 1));
+		this.getActionMap().put("pause", new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				isPaused = !isPaused;
+				if (isPaused)
+					System.out.println("Game Paused.");
+				else
+					System.out.println("Game Unpaused.");
+			}
+		});
+	}
+
+	/**
+	 * 
+	 * method for killing digger each death resets his position to level default
+	 * kills off enemies currently on map
+	 * 
+	 */
+	public void diggerDies() {
+		if (lives == 0) {
+			this.isPaused = true;
+			this.hud.setText("GAME OVER!");
+			this.hud.repaint();
+			System.out.println("Game over");
+			
+		} else {
+			this.lives--;
+			((Digger) this.entities.get(0)).setSpeed(0,0);
+			// digger dies sound
+			if (!this.isMuted()) {
+				String wavFile = new String(System.getProperty("user.dir")
+						+ "/src/sounds/death.wav");
+				InputStream in = null;
+				try {
+					in = new FileInputStream(wavFile);
+				} catch (FileNotFoundException exception) {
+					// TODO Auto-generated catch-block stub.
+					exception.printStackTrace();
+				}
+				AudioStream audio = null;
+				try {
+					audio = new AudioStream(in);
+				} catch (IOException exception) {
+					// TODO Auto-generated catch-block stub.
+					exception.printStackTrace();
+				}
+				AudioPlayer.player.start(audio);
+			}
+			
+			
+			for (Entity entity : this.entities) {
+				if (entity.getClass().toString().equals("class Enemy")) {
+					this.entitiesToRemove.add(entity);
+					((Enemy) entity).getParent().babyDied();
+				}
+			}
+			ArrayList<SaveData> saveData = this
+					.getSaveData(this.levels[this.currentLevel]);
+			for (SaveData save : saveData) {
+				if (save.getState() == 4) {
+					Point2D.Double pt = new Point2D.Double();
+					pt.x = save.getPoint().getX() * this.size + this.size / 2;
+					pt.y = save.getPoint().getY() * this.size + this.size / 2;
+					((Digger) this.entities.get(0)).setCenter(pt);
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * adds enemy to remove list and updates player score
+	 * 
+	 * @param thing
+	 */
+	public void addPoints(Entity thing) {
+		for (int i = 1; i < this.entities.size(); i++)
+			if (this.entities.get(i) == thing)
+				this.entitiesToRemove.add(this.entities.get(i));
+		this.bonusPoints += thing.getPoints();
+		this.score += thing.getPoints();
+		if (this.bonusPoints >= this.bonusLifePoints) {
+			this.lives++;
+			this.bonusPoints -= this.bonusLifePoints;
+		}
+
+	}
+
+	/**
+	 * 
+	 * converts rows and columns to point on frame
+	 * 
+	 * @param d
+	 * @param e
+	 * @return
+	 */
+	private Point2D.Double convertGridToPixel(double d, double e) {
+		Point2D.Double point = new Point2D.Double(d * this.size, e * this.size);
+		return point;
+	}
+
+	/**
+	 * 
+	 * sets map equal to true for tunnel
+	 * 
+	 * @param i
+	 * @param j
+	 */
+	public void makeTunnel(int i, int j) {
+		this.spaces[j][i] = true;
+	}
+
+	// ------------------------------------
+	// getter and setter methods below
+	// -------------------------------------
+
+	public List<Entity> getEntities() {
+		return this.entities;
+	}
+
+	public List<Entity> getEntitiesToAdd() {
+		return this.entitiesToAdd;
+	}
+
+	public boolean[][] getMap() {
+		return this.spaces;
+	}
+
+	public int getBlockSize() {
+		return this.size;
+	}
+
+	public boolean getDebug() {
+		return isDebug;
+	}
+
+	public List<Entity> getEntitiesToRemove() {
+		return this.entitiesToRemove;
+	}
+
+	public int getLevel() {
+		return this.currentLevel;
+	}
+	
+	public boolean isMuted(){
+		return this.muted;
+	}
+	
+	public void setMuted(boolean state){
+		this.muted = state;
+	}
+	
+	public void setPause(boolean state){
+		isPaused = state;
+	}
+
+	public JLabel getHud() {
+		// TODO Auto-generated method stub.
+		return this.hud;
+	}
+
+	public int getScore() {
+		return this.score;
+	}
+
+}

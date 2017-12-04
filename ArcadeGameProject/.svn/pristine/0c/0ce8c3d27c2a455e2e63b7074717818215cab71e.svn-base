@@ -1,0 +1,72 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.Random;
+
+
+
+public class Enemy implements Entity {
+	
+	private WorldComponent game;
+	private Point2D.Double centerPoint;
+	private double size;
+	private Digger digger;
+	private double vx;
+	private double vy;
+	private boolean isHobblin = false;
+	
+	
+	public Enemy(Point2D.Double pt, double size, WorldComponent game){
+		this.centerPoint = pt;
+		this.game = game;
+		this.size = size;
+		this.digger = (Digger) game.getEntities().get(0);
+		this.vx = 0;
+		this.vy = 0;
+	}
+
+
+	@Override
+	public void timePassed() {
+		// TODO Auto-generated method stub.
+		
+	}
+
+
+	@Override
+	public Shape getShape() {
+		
+		double x = this.centerPoint.x-this.size/2+2;
+		double y = this.centerPoint.y-this.size/2+2;
+		
+		Rectangle2D.Double rect = new Rectangle2D.Double(
+				x,y,this.size/2-4,this.size/2-4);
+		return rect;
+	}
+
+
+	@Override
+	public Color getColor() {
+		Color[] color = new Color[4];
+		color[0] = Color.red;
+		color[1] = Color.green;
+		color[2] = Color.black;
+		color[3] = Color.blue;
+		
+		Random random = new Random();
+		
+		return color[random.nextInt(3)];
+		
+		
+	}
+
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		return 0;
+	}
+	
+
+}

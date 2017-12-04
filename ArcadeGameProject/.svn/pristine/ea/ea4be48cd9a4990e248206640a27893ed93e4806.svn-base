@@ -1,0 +1,46 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D.Double;
+
+import javax.swing.ImageIcon;
+
+
+public class OneUp implements Entity {
+
+	@Override
+	public void timePassed() {
+		// TODO Auto-generated method stub.
+
+	}
+
+	@Override
+	public Shape getShape() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public Color getColor() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		return 0;
+	}
+
+	@Override
+	public Double getCenter() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public ImageIcon getImage() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+}

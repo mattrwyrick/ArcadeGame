@@ -1,0 +1,93 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+
+public class Gold implements Entity {
+
+	private Point2D.Double centerPoint;
+	private boolean fall = false;
+	private double vx = 0;
+	private double vy = 0;
+	private WorldComponent game;
+	private double size;
+	private int row;
+	private int column;
+	private boolean broken = false;
+	private boolean willBrake;
+
+	public Gold(Point2D.Double pt, double size, WorldComponent game) {
+		this.game = game;
+		this.centerPoint = pt;
+		this.size = size;
+		this.centerPoint.x += this.size / 2;
+		this.centerPoint.y += this.size / 2;
+		this.column = (int) (pt.x / this.size);
+		this.row = (int) (pt.y / this.size);
+
+	}
+
+	@Override
+	public void timePassed() {
+		
+		if (this.broken){
+			Point2D.Double pt = this.game.getEntities().get(0).getCenter();
+			if(Point2D.Double.distance(this.centerPoint.x, this.centerPoint.y, pt.getX(), pt.getY())<this.size*1.2){
+				this.game.addPoints(this);
+			}
+		}
+		
+		boolean[][] map = this.game.getMap();
+		this.row = (int) ((this.centerPoint.y - this.size / 2) / this.size);
+		this.column = (int) (this.centerPoint.x / this.size);
+		if (this.row + 1 < 16 && map[this.row + 1][this.column]){
+			this.vy=1;
+			if(this.row + 2 < 16 && map[this.row + 2][this.column])
+				this.willBrake = true;
+		}
+		else{
+			this.vy=0;
+			if (this.willBrake)
+				this.broken = true;
+		}
+			
+
+		this.centerPoint.x += vx;
+		this.centerPoint.y += vy;
+	}
+
+	@Override
+	public Shape getShape() {
+		double x = this.centerPoint.x - this.size / 2;
+		double y = this.centerPoint.y - this.size / 2;
+		Ellipse2D.Double shape = new Ellipse2D.Double(x, y, this.size,
+				this.size);
+		return shape;
+	}
+
+	@Override
+	public Color getColor() {
+		// TODO Auto-generated method stub.
+		if(!this.broken)
+			return Color.yellow;
+		return Color.orange;
+	}
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		return 1000;
+	}
+
+	@Override
+	public Double getCenter() {
+		// TODO Auto-generated method stub.
+		return this.centerPoint;
+	}
+	
+	public boolean getBroken(){
+		return this.broken;
+	}
+
+}

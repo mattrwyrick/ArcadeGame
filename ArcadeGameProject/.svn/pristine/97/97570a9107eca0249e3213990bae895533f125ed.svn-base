@@ -1,0 +1,51 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.io.File;
+import java.io.FileNotFoundException;
+
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
+
+public class WorldFrame {
+	private JFrame frame;	
+	private final int SIZE=50;
+	private final int ROWS=16;
+	private final int COLUMNS=24;
+	
+	public WorldFrame() throws FileNotFoundException{
+		this.frame = new JFrame();
+		this.frame.setSize(this.COLUMNS*this.SIZE+this.SIZE/2-19,this.ROWS*this.SIZE+this.SIZE+35);
+		
+		this.frame.setResizable(false);
+		File[] levels = new File[4];
+		levels[0] = new File(System.getProperty("user.dir")+"/src/levels/level1.txt");
+		levels[1] = new File(System.getProperty("user.dir")+"/src/levels/level2.txt");
+		levels[2] = new File(System.getProperty("user.dir")+"/src/levels/level3.txt");
+		levels[3] = new File(System.getProperty("user.dir")+"/src/levels/level4.txt");
+			
+		JLabel HUD = new JLabel();
+		HUD.setSize(this.COLUMNS*this.SIZE+this.SIZE/2, this.SIZE/2);
+		HUD.setFont(new Font("Serif", Font.BOLD, 4*this.SIZE/5));
+		HUD.setBackground(new Color(51,0,51));
+		HUD.setForeground(Color.white);
+		HUD.setOpaque(true);
+		
+		WorldComponent game = new WorldComponent(this.SIZE,this.ROWS,this.COLUMNS, levels,HUD);
+		this.addThing(game);
+		this.frame.add(HUD,BorderLayout.SOUTH);
+		
+
+		
+		this.frame.setDefaultCloseOperation(this.frame.EXIT_ON_CLOSE);
+		this.frame.setVisible(true);
+
+	}
+	
+	public void addThing(JComponent thing){
+		this.frame.add(thing);
+	}
+
+}

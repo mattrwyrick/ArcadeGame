@@ -1,0 +1,20 @@
+import java.awt.geom.Point2D.Double;
+
+
+public class NukeUpgrade extends Upgrade{
+
+	public NukeUpgrade(Double pt, int size, WorldComponent game) {
+		super(pt, size, game);
+		// TODO Auto-generated constructor stub.
+	}
+	
+	protected void pickup(){
+		super.pickup();
+		for (Entity entity : this.game.getEntities()){
+			if (entity.getClass().toString().equals("class Enemy")){
+				this.game.addPoints(entity);
+			}
+		}
+	}
+
+}

@@ -1,0 +1,324 @@
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Random;
+
+public class Pathway {
+
+	private ArrayList<int[]> path;
+	private boolean[][] map;
+	private WorldComponent game;
+	private Digger digger;
+	private Point2D.Double diggerCenter;
+	private int dRow;
+	private int dColumn;
+
+	/**
+	 * Pathway Constructor
+	 * 
+	 * @param game
+	 * @param center
+	 */
+	public Pathway(WorldComponent game) {
+		this.game = game;
+		this.map = new boolean[16][24];
+		// makes clone of map to mark pathways
+		// this.map = game.getMap().clone();
+		for (int i = 0; i < 16; i++)
+			for (int j = 0; j < 24; j++) {
+				this.map[i][j] = game.getMap()[i][j];
+			}
+
+		// gets digger/ pxl center / row and column
+		this.digger = (Digger) this.game.getEntities().get(0);
+		this.diggerCenter = this.digger.getCenter();
+		this.dRow = (int) (this.diggerCenter.getY() / this.game.getBlockSize());
+		this.dColumn = (int) (this.diggerCenter.getX() / this.game
+				.getBlockSize());
+
+	}
+	
+	
+	/**
+	 * 
+	 * provides specific bias for enemy movement
+	 * and begins tracing out enemy path to digger
+	 *
+	 * @param row
+	 * @param column
+	 * @return
+	 */
+	public ArrayList<int[]> getNeighbors(int row, int column) {
+		// fill given space with dirt
+		this.map[row][column] = false;
+		
+		//list of neighbors & bias
+		ArrayList<int[]> list = new ArrayList<int[]>();
+		ArrayList<int[]> bias = new ArrayList<int[]>();
+		
+		//make bias determiners
+		int[] below = new int[2];
+		int[] above = new int[2];
+		int[] right = new int[2];
+		int[] left = new int[2];
+		
+		//set bias determiners
+		below[0] = 1;
+		below[1] = 0;
+		above[0] = -1;
+		above[1] = 0;
+		right[0] = 0;
+		right[1] = 1;
+		left[0] = 0;
+		left[1] = -1;
+		
+		//add bias to list------------
+		
+		//checks if same row or column as digger
+		if(this.dColumn==column || this.dRow==row){
+			
+			//if digger is on the same row
+			if(this.dRow==row){
+				if(this.dColumn>column){
+					bias.add(right);
+					bias.add(left);
+				}else{
+					bias.add(left);
+					bias.add(right);
+				}
+				bias.add(above);
+				bias.add(below);
+			}
+
+			//if digger is in the same column;
+			if(this.dColumn==column){
+				if(this.dRow>row){
+					bias.add(below);
+					bias.add(above);
+				}else{
+					bias.add(above);
+					bias.add(below);
+				}
+				bias.add(right);
+				bias.add(left);
+			}
+		}else{
+
+			//if neither row or column
+			//down bias
+			if(this.dRow>row){
+				bias.add(below);
+				//right bias
+				if(this.dColumn>column){
+					bias.add(right);
+					bias.add(left);
+					//left bias
+				}else{
+					bias.add(left);
+					bias.add(right);
+				}
+				bias.add(above);
+				//up bias
+			}else{
+				bias.add(above);
+				//right bias
+				if(this.dColumn>column){
+					bias.add(right);
+					bias.add(left);
+					//left bias
+				}else{
+					bias.add(left);
+					bias.add(right);
+				}
+				bias.add(below);
+			}
+
+		}
+		
+		//get neighbors with specific bias
+		for(int i=0; i<bias.size(); i++){
+			int[] x = bias.get(i);
+			try{
+				if(this.map[row+x[0]][column+x[1]]){
+					list.add(getNeighborHelper(row+x[0],column+x[1]));
+				}
+			}catch(IndexOutOfBoundsException e) {}
+		}
+
+		return list;
+	}
+	
+	
+	/**
+	 * 
+	 * get neighbor helper method
+	 *
+	 * @param row
+	 * @param column
+	 * @return
+	 */
+	public int[] getNeighborHelper(int row, int column){
+		int[] pt = new int[2];
+		pt[0] = row;
+		pt[1] = column;
+		this.map[row][column] = false;
+		return pt;
+			
+	}
+
+	/**
+	 * call this method outside of Pathway
+	 * 
+	 * 
+	 * this is the primary method returns first point from shortest pathway.
+	 * 
+	 * @return
+	 */
+	public int[] findPath(int row, int column) {
+		// gets neighbors from start
+		ArrayList<int[]> points = getNeighbors(row, column);
+
+		// return if 1 direction initially
+		if (points.size() == 1) {
+			// System.out.println("returned");
+
+			return points.get(0);
+
+		}
+
+		// check if digger location == neighbor location
+		for (int i = 0; i < points.size(); i++) {
+
+			if (points.get(i)[0] == this.dRow
+					&& points.get(i)[1] == this.dColumn) {
+				return points.get(i);
+			}
+		}
+
+		// makes pathway(s) for starting neighbors
+		for (int j = 0; j < points.size(); j++) {
+			if (findPathHelper(points.get(j))) {
+				return points.get(j);
+			}
+		}
+		return points.get(0);
+	}
+
+	/**
+	 * takes in starting point traces out tunnels if digger is found returns
+	 * true;
+	 * 
+	 * @param start
+	 * @return
+	 */
+	public boolean findPathHelper(int[] start) {
+
+		// get neighbors
+		ArrayList<int[]> points = getNeighbors(start[0], start[1]);
+
+		// base-case / no neighbors = dead end = false
+		if (points.size() == 0) {
+			return false;
+		}
+
+		// check if digger location == neighbor locations
+		for (int i = 0; i < points.size(); i++) {
+			if (points.get(i)[0] == this.dRow
+					&& points.get(i)[1] == this.dColumn) {
+				return true;
+			}
+		}
+
+		// recursion - check neighbor points of this point's neighboring ones.
+		for (int i = 0; i < points.size(); i++) {
+			if (findPathHelper(points.get(i))) {
+				return true;
+			}
+		}
+		return false;
+
+	}
+	
+	
+	/**
+	 * 
+	 * finds direct path for hobblinPath
+	 *
+	 * @param row
+	 * @param column
+	 * @return
+	 */
+	public int[] findHobblinPath(int row, int column){
+		int[] pt = new int[2];
+		boolean[][] map = this.game.getMap();
+		
+		Random random = new Random();
+		int num = random.nextInt(2);
+		
+		if(num==0){
+			if(this.dRow>row){ 	//down
+				return hobblinHelper(row+1,column,map);}
+			if(this.dRow<row){	//up
+				return hobblinHelper(row-1,column,map);}
+			if(this.dColumn>column){	//right
+				return hobblinHelper(row,column+1,map);}
+			if(this.dColumn<column){	//left
+				return hobblinHelper(row,column-1, map);}
+		}
+		
+		if(num==1){
+			if(this.dColumn>column){	//right
+				return hobblinHelper(row,column+1,map);}
+			if(this.dColumn<column){	//left
+				return hobblinHelper(row,column-1, map);}
+			if(this.dRow>row){ 	//down
+				return hobblinHelper(row+1,column,map);}
+			if(this.dRow<row){	//up
+				return hobblinHelper(row-1,column,map);}
+			}
+		
+		pt[0] = row;
+		pt[1] = column;
+		return pt;
+	}
+	
+	
+	public int[] hobblinHelper(int row, int column, boolean[][] map){
+		map[row][column] = true;
+		int[] pt = new int[2];
+		pt[0] = row;
+		pt[1] = column;
+		return pt;
+	}
+	
+	/**
+	 * 
+	 * gets correct path for enemy entity
+	 * 
+	 */
+	public int[] pathFinder(int row, int column, boolean hobblin){
+		if(hobblin){
+			return findHobblinPath(row,column);
+		}
+		return findPath(row,column);
+	}
+	
+	/**
+	 * 
+	 * returns true if money should fall
+	 * if space under is false;
+	 *
+	 * @param row
+	 * @param column
+	 * @return
+	 */
+	public boolean goldFall(int row, int column){
+		boolean[][] map = this.game.getMap();
+		try{
+			if(map[row-1][column]){
+				return true;
+			}
+		}finally{
+		return false;
+		}
+	}
+}

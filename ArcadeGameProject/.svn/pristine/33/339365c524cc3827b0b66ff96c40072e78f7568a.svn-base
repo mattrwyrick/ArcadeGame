@@ -1,0 +1,40 @@
+import java.awt.geom.Point2D;
+
+/* 
+ * TODO:this whole class is pointless, only useful field is the state, basically just a class just for
+ * 		and integer. Replace throughout.
+ */
+public class Space {
+	private int state;
+	private int row;
+	private int column;
+	private int xPxl;
+	private int yPxl;
+	/*
+	  		0: dirt
+			1: tunnel
+			2: emerald
+			3: gold bag
+			4: digger
+	 */
+	
+	public Space(int state){
+		this.state = state;
+//		this.row = row;
+//		this.column = column;
+	}
+	
+	public int getState(){
+		return this.state;
+	}
+	
+	public Point2D.Double gridToPxl(int size){
+		return new Point2D.Double(this.column*size,this.row*size);
+	}
+	
+	public int pxlToGrid(){
+		return 0;
+	}
+
+
+}

@@ -1,0 +1,50 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D;
+
+
+public class EnemyCreator implements Entity{
+	private WorldComponent game;
+	private int SPAWN_RATE = 3000;
+	private int spawnTimer;
+	private Point2D.Double centerPoint;
+	
+	public EnemyCreator(){
+		this.spawnTimer = 0;
+	}
+
+	@Override
+	public void timePassed() {
+		this.spawnTimer++;
+//		System.out.println(this.spawnTimer);
+		if (this.spawnTimer >= this.SPAWN_RATE){
+			this.spawnTimer = 0;
+			this.spawnEnemy();
+		}
+		
+	}
+
+	private void spawnEnemy() {
+		System.out.println("Enemy theoretically created");
+		
+	}
+
+	@Override
+	public Shape getShape() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public Color getColor() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		return 0;
+	}
+
+}

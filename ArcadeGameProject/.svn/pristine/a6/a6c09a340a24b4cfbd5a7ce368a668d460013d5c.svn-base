@@ -1,0 +1,138 @@
+package LevelEditor;
+
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Polygon;
+import java.awt.Shape;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+
+import javax.swing.JComponent;
+
+public class EditorComponent extends JComponent implements MouseListener{
+	Space spaces[][];
+	private final double SIZE;
+	private int newState;
+	private ArrayList<String> saveData;
+	
+	public EditorComponent(double size){
+		this.SIZE = size;
+		this.newState = 0;
+		spaces = new Space[16][24];
+		for(int i = 0; i < 16; i++)
+			for(int j = 0; j < 24; j++)
+				spaces[i][j] = new Space(0,this.SIZE);
+		this.addMouseListener(this);
+		this.saveData = new ArrayList<String>();
+	}
+	
+	public ArrayList<String> getSaveData(){
+		return this.saveData;
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g){
+		Graphics2D g2 = (Graphics2D)g;
+		int state = 0;
+		Shape shape;
+		int x,y;
+		
+		for(int i = 0; i < 16; i++){
+			
+			for(int j = 0; j < 24; j++){
+				state = this.spaces[i][j].getState();
+				x = (int) (j * this.SIZE);
+				y = (int) (i * this.SIZE);
+				
+				switch(state){
+				case 0:
+					shape = new Rectangle2D.Double(x,y,this.SIZE,this.SIZE);
+					g2.setColor(new Color(169,69,19));
+					g2.fill(shape);
+					break;
+				case 1:
+					shape = new Rectangle2D.Double(x,y,this.SIZE,this.SIZE);
+					g2.setColor(Color.black);
+					g2.fill(shape);
+					break;
+				case 2:
+					shape = new Rectangle2D.Double(x,y,this.SIZE,this.SIZE);
+					g2.setColor(new Color(169,69,19));
+					g2.fill(shape);
+					shape = new Polygon();
+					((Polygon) shape).addPoint((int)(x+this.SIZE/2),(int) (y+this.SIZE/10));
+					((Polygon) shape).addPoint((int) (x+7*this.SIZE/8),(int) (y+this.SIZE/2));
+					((Polygon) shape).addPoint((int) (x+this.SIZE/2), (int) (y+9*this.SIZE/10));
+					((Polygon) shape).addPoint((int) (x+this.SIZE/8), y+(int) (this.SIZE/2));
+					g2.setColor(Color.green);
+					g2.fill(shape);
+					break;
+				case 4:
+					shape = new Rectangle2D.Double(x,y,this.SIZE,this.SIZE);
+					g2.setColor(Color.black);
+					g2.fill(shape);
+					shape = new Ellipse2D.Double(x,y,this.SIZE,this.SIZE);
+					g2.setColor(new Color(130,170,100));
+					g2.fill(shape);
+					break;
+				default:
+					System.out.println("Something bad happened.   state:"+state);
+					this.spaces[j][i].setState(0);
+					break;
+				}
+			}
+		}
+		g2.setColor(Color.lightGray);
+		for(int i = 1; i <= 16; i++){
+			g2.drawLine(0, (int) (i*this.SIZE), (int) (24*this.SIZE), (int) (i*this.SIZE));
+			for(int j = 1; j <= 24; j++)
+				g2.drawLine((int)(j*this.SIZE), 0, (int)(j*this.SIZE), (int)(16*this.SIZE));
+		}
+	}
+	
+	public void setNewState(int state){
+		this.newState = state;
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent arg0) {
+		// TODO Auto-generated method stub.
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent arg0) {
+		// TODO Auto-generated method stub.
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		Point pt = e.getPoint();
+		int x = (int) (pt.getX()/this.SIZE);
+		int y = (int) (pt.getY()/this.SIZE);
+		String data = this.newState+" "+y+" "+x;
+		System.out.println(data);
+		this.spaces[y][x].setState(this.newState);
+		this.repaint();
+		this.saveData.add(data);
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		
+		
+	}
+
+}

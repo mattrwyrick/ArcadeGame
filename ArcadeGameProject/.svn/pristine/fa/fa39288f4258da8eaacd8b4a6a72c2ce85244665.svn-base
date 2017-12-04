@@ -1,0 +1,21 @@
+import java.awt.geom.Point2D.Double;
+
+import javax.swing.ImageIcon;
+
+
+public class SpeedUpgrade extends Upgrade{
+
+	public SpeedUpgrade(Double pt, int size, WorldComponent game) {
+		super(pt, size, game);
+	}
+	
+	public ImageIcon getImage(){
+		return new ImageIcon(System.getProperty("user.dir") + "/src/images/speedUpgrade.png");
+	}
+	
+	protected void pickup(){
+		super.pickup();
+		((Digger) this.game.getEntities().get(0)).setMoveSpeedMultiplier(1.25);
+	}
+
+}

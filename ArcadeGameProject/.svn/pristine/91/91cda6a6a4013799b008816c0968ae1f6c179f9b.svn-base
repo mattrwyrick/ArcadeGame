@@ -1,0 +1,46 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+
+
+public class Bullet implements Entity {
+	private Point2D.Double centerPoint;
+	private double vx;
+	private double vy;
+	private double size;
+	
+	public Bullet(Point2D.Double pt, double size, double vx, double vy){
+		this.centerPoint = pt;
+		this.vx = vx;
+		this.vy = vy;
+		this.size = size;
+	}
+
+	@Override
+	public void timePassed() {
+		this.centerPoint.x+=vx;
+		this.centerPoint.y+=vy;
+
+	}
+
+	@Override
+	public Shape getShape() {
+		double x,y;
+		x = this.centerPoint.x-this.size/5;
+		y = this.centerPoint.y-this.size/5;
+		Ellipse2D.Double shape = new Ellipse2D.Double(x,y,this.size/2.5,this.size/2.5);
+		return shape;
+	}
+
+	@Override
+	public Color getColor() {
+		return Color.DARK_GRAY;
+	}
+
+	@Override
+	public int getPoints() {
+		return 0;
+	}
+
+}

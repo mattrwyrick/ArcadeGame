@@ -1,0 +1,247 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.swing.ImageIcon;
+import javax.swing.JComponent;
+
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
+
+public class Digger extends JComponent implements Entity {
+	private static final double SPEED_SCALE = 1;
+	private Point2D.Double centerPoint;
+	private double size;
+	private double vx;
+	private double vy;
+	private final int SHOT_COOLDOWN = 1000;
+	private int shotClock;
+	private int upgrades = 0;
+	private boolean isInvincible = false;
+	private int invincibleTimer = 0;
+	private double shotSpeedMultiplier = 1;
+	private double moveSpeedMultiplier = 1;
+
+	private WorldComponent game;
+
+	public Digger(Point2D.Double pt, double size, WorldComponent game) {
+		this.game = game;
+		this.centerPoint = pt;
+		this.vx = 0;
+		this.vy = 0;
+		this.size = size;
+		this.centerPoint.x += this.size / 2;
+		this.centerPoint.y += this.size / 2;
+		this.shotClock = this.SHOT_COOLDOWN;
+	}
+
+	public void shoot() {
+		if (this.shotClock >= this.SHOT_COOLDOWN * this.shotSpeedMultiplier) {
+			Point2D.Double pt = new Point2D.Double(this.centerPoint.x
+					+ this.size / 2, this.centerPoint.y + this.size / 2);
+			Bullet bullet = new Bullet(pt, this.size, this.vx, this.vy,
+					this.game);
+			this.game.getEntitiesToAdd().add(bullet);
+			this.shotClock = 0;
+
+			// shoot sound
+			if (!this.game.isMuted()) {
+				String wavFile = new String(System.getProperty("user.dir")
+						+ "/src/sounds/gun.wav");
+				InputStream in = null;
+				try {
+					in = new FileInputStream(wavFile);
+				} catch (FileNotFoundException exception) {
+					exception.printStackTrace();
+				}
+				AudioStream audio = null;
+				try {
+					audio = new AudioStream(in);
+				} catch (IOException exception) {
+					exception.printStackTrace();
+				}
+				AudioPlayer.player.start(audio);
+			}
+		}
+	}
+
+	public void eatEntity(Entity thing) {
+		this.game.addPoints(thing);
+	}
+
+	public void setShotSpeedMultiplier(double multiplier) {
+		this.shotSpeedMultiplier = multiplier;
+		System.out.println(this.SHOT_COOLDOWN);
+		System.out.println(this.SHOT_COOLDOWN * this.shotSpeedMultiplier);
+	}
+
+	public void moveCenter(double dx, double dy) {
+		this.centerPoint.x += this.moveSpeedMultiplier * dx;
+		this.centerPoint.y += this.moveSpeedMultiplier * dy;
+	}
+
+	public void setSpeed(double vx, double vy) {
+		this.vx = vx;
+		this.vy = vy;
+	}
+
+	@Override
+	public void timePassed() {
+		if (this.shotClock < this.SHOT_COOLDOWN)
+			this.shotClock++;
+
+		double x = this.centerPoint.x - this.size / 2;
+		double y = this.centerPoint.y - this.size / 2;
+
+		Point2D.Double nextPoint = new Point2D.Double(this.centerPoint.x + vx,
+				this.centerPoint.y + vy);
+
+		// if point is inside game frame
+		if (this.game.isInside(nextPoint)) {
+
+			if (this.vx != 0 && y % this.size == 0)
+				this.moveCenter(this.vx, this.vy);
+			else {
+				if (y % this.size > this.size / 2)
+					this.moveCenter(0, Math.abs(this.vx));
+				else {
+					this.moveCenter(0, -Math.abs(this.vx));
+				}
+			}
+
+			if (this.vy != 0 && x % this.size == 0)
+				this.moveCenter(this.vx, this.vy);
+			else {
+				if (x % this.size > this.size / 2)
+					this.moveCenter(Math.abs(this.vy), 0);
+				else {
+					this.moveCenter(-Math.abs(this.vy), 0);
+				}
+			}
+		}
+
+		this.game.makeTunnel((int) ((this.centerPoint.getX()) / this.size),
+				(int) ((this.centerPoint.getY()) / this.size));
+
+		if (this.isInvincible) {
+			this.invincibleTimer++;
+			if (this.invincibleTimer == 1500) {
+				this.isInvincible = false;
+				this.invincibleTimer = 0;
+			}
+		}
+	}
+
+	public boolean isInvincible() {
+		return this.isInvincible;
+	}
+
+	public void setInvincible(boolean state) {
+		this.isInvincible = state;
+	}
+
+	@Override
+	public Shape getShape() {
+		return null;
+	}
+
+	@Override
+	public Color getColor() {
+		if (this.shotClock == this.SHOT_COOLDOWN)
+			return Color.green;
+		return new Color(130, 170, 100);
+	}
+
+	public void setCenter(Point2D.Double pt) {
+		this.centerPoint = pt;
+	}
+
+	@Override
+	public int getPoints() {
+		return 0;
+	}
+
+	public Point2D.Double getCenter() {
+		return this.centerPoint;
+	}
+
+	public double[] getVxy() {
+		double[] num = new double[2];
+		num[0] = this.vx;
+		num[1] = this.vy;
+		return num;
+	}
+
+	public String getShotCooldown() {
+		String string;
+		if (this.shotClock < this.SHOT_COOLDOWN * this.shotSpeedMultiplier)
+			string = Integer
+					.toString((int) (((double) this.shotClock
+							/ (double) this.SHOT_COOLDOWN / this.shotSpeedMultiplier) * 100))
+					+ "%";
+		else
+			string = "Ready!";
+		return string;
+	}
+
+	@Override
+	public ImageIcon getImage() {
+
+		String image = "";
+		if (this.isInvincible) {
+			if (this.vx == 1) {
+				image = "diggerRightGold";
+			}
+			if (this.vx == -1) {
+				image = "diggerLeftGold";
+			}
+			if (this.vy == 1) {
+				image = "diggerDownGold";
+			}
+			if (this.vy == -1) {
+				image = "diggerUpGold";
+			}
+
+		} else {
+			if (this.vx == 1) {
+				image = "diggerRight";
+			}
+			if (this.vx == -1) {
+				image = "diggerLeft";
+			}
+			if (this.vy == 1) {
+				image = "diggerDown";
+			}
+			if (this.vy == -1) {
+				image = "diggerUp";
+			}
+		}
+		if (this.vx == 0 && this.vy == 0) {
+			image = "diggerRight";
+		}
+		return new ImageIcon(System.getProperty("user.dir") + "/src/images/"
+				+ image + ".png");
+	}
+
+	public boolean stopForGold(Point2D.Double pt) {
+		for (Entity entity : this.game.getEntities()) {
+			if (entity.getClass().toString().equals("class Gold")) {
+				if (Point2D.Double.distance(this.centerPoint.x,
+						this.centerPoint.y, entity.getCenter().getX(), entity
+								.getCenter().getY()) < this.size) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public void setMoveSpeedMultiplier(double moveSpeedMultiplier) {
+		this.moveSpeedMultiplier = moveSpeedMultiplier;
+	}
+
+}

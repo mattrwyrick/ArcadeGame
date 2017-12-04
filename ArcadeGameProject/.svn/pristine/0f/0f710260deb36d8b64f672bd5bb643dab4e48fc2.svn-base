@@ -1,0 +1,161 @@
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
+
+
+public class WorldComponent extends JComponent{
+	private final int ROWS;
+	private final int COLUMNS;
+	private int size;
+	private int currentLevel;
+	private int[][] spaces;
+	private ArrayList<Entity> entities;
+	private final File[] levels;
+	
+	public WorldComponent(int size,int rows, int columns, File[] levels){
+		this.currentLevel = 0;
+		this.levels = levels;
+		this.entities = new ArrayList<Entity>();
+		this.size=size;
+		this.ROWS = rows;
+		this.COLUMNS = columns;
+		this.spaces = new int[this.ROWS][this.COLUMNS];
+		for (int i = 0; i < this.ROWS; i++)
+			for (int j = 0; j < this.COLUMNS; j++){
+				this.spaces[i][j] = 0;
+			}
+		this.entities.add(new Digger(new Point2D.Double(),this.size));
+		this.changeLevel(this.getSaveData(levels[0]),0);
+		
+		this.setupKeyBindings();
+		
+		Runnable tickTock = new Runnable() {
+			@Override
+			public void run() {
+				try {
+					while (true) {
+						Thread.sleep(10);
+						timePassed();
+					}
+				} catch (InterruptedException exception) {
+					// Stop when interrupted
+				}
+			}
+		};
+		
+		new Thread(tickTock).start();
+	}
+	
+	protected void timePassed() {
+		for (Entity entity: this.entities){
+			entity.timePassed();
+			this.repaint();
+		}
+		
+	}
+	
+	private void setupKeyBindings(){
+		System.out.println("Change Level Keys Setup.");
+		int focusType = JComponent.WHEN_IN_FOCUSED_WINDOW;
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("U"),"nextLevel");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("D"),"previousLevel");
+		this.getActionMap().put("nextLevel",new LevelAction(1,this.levels,this));
+		this.getActionMap().put("previousLevel",new LevelAction(-1,this.levels,this));
+		/* TODO move this to digger if possible */
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("LEFT"),"leftPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("RIGHT"),"rightPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("UP"),"upPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("DOWN"),"downPressed");
+		this.getInputMap(focusType).put(KeyStroke.getKeyStroke("SPACE"),"spacePressed");
+		this.getActionMap().put("leftPressed",new MoveAction((Digger)this.entities.get(0),-1,0));
+		this.getActionMap().put("rightPressed",new MoveAction((Digger)this.entities.get(0),1,0));
+		this.getActionMap().put("upPressed",new MoveAction((Digger)this.entities.get(0),0,-1));
+		this.getActionMap().put("downPressed",new MoveAction((Digger)this.entities.get(0),0,1));
+		this.getActionMap().put("spacePressed",new MoveAction((Digger)this.entities.get(0),0,0));
+	}
+
+	public int getLevel(){
+		return this.currentLevel;
+	}
+	public void changeLevel(ArrayList<SaveData> savaData,int dl){
+		this.currentLevel += dl;
+		
+		//reset level to all dirt
+		for (int i = 0; i < this.ROWS; i++)
+			for (int j = 0; j < this.COLUMNS; j++)
+				this.spaces[i][j] = 0;
+		
+		for (SaveData data: savaData){
+			this.spaces[(int) data.getPoint().getY()][(int) data.getPoint().getX()] = data.getState();
+		}
+		Point2D.Double pt = new Point2D.Double();
+		
+		//find the digger in spaces
+		for(int i = 0; i < this.ROWS; i++)
+			for (int j = 0; j < this.COLUMNS; j++)
+				if (this.spaces[i][j] == 4)
+					pt.setLocation(this.convertGridToPixel(j,i));	
+		((Digger)this.entities.get(0)).setCenter(pt);
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g){
+		Graphics2D g2 = (Graphics2D)g;
+		
+		for(int i = 0; i < this.ROWS; i++){
+			for (int j = 0; j < this.COLUMNS; j++){
+				if (this.spaces[i][j] == 0){
+					Rectangle2D.Double rect = new Rectangle2D.Double(j*this.size,i*this.size,this.size,this.size);
+					g2.setColor(new Color(169,69,19));
+					g2.fill(rect);
+				}
+				if (this.spaces[i][j] == 1 || this.spaces[i][j] == 4){
+					Rectangle2D.Double rect = new Rectangle2D.Double(j*this.size,i*this.size,this.size,this.size);
+					g2.setColor(Color.black);
+					g2.fill(rect);
+				}
+			}
+		}
+		
+		for (Entity entity: this.entities){
+			g2.setColor(entity.getColor());
+			g2.fill(entity.getShape());
+		}
+	}
+	
+	private Point2D.Double convertGridToPixel(int column, int row){
+		Point2D.Double point = new Point2D.Double(column*this.size,row*this.size);
+		return point;
+	}
+	
+	public ArrayList<SaveData> getSaveData(File file){
+		ArrayList<SaveData> saveData = new ArrayList<SaveData>();
+		int i = 0;
+		int j = 0;
+		int state = 0;
+		try {
+			Scanner scanner = new Scanner(file);
+			while(scanner.hasNextInt()){
+				state = scanner.nextInt();
+				j = scanner.nextInt();
+				i = scanner.nextInt();
+				saveData.add(new SaveData(new Point2D.Double(i,j),state));
+			}
+		} catch (FileNotFoundException exception) {
+			exception.printStackTrace();
+		}
+		
+		
+		return saveData;
+	}
+
+}

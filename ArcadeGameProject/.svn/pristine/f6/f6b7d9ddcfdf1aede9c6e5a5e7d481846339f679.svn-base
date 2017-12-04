@@ -1,0 +1,120 @@
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+
+
+public class Pathway {
+	
+	private ArrayList<Pathway>;
+	private ArrayList<int[]> path;
+	private boolean[][] map;
+	private Point2D.Double enemyCenter;
+	private int eRow;
+	private int eColumn;
+	private WorldComponent game;
+	private Digger digger;
+	private Point2D.Double diggerCenter;
+	private int dRow;
+	private int dColumn;
+	
+	
+	/**
+	 * Pathway Constructor
+	 *
+	 * @param game
+	 * @param center
+	 */
+	public Pathway(WorldComponent game, Point2D.Double center){
+		this.game = game;
+		
+		//makes clone of map to mark pathways
+		this.map = game.getMap().clone();
+		
+		//gets enemy pxl center / row and column
+		this.enemyCenter = center;
+		this.eRow = (int) (center.y/this.game.getBlockSize());
+		this.eColumn = (int) (center.x/this.game.getBlockSize());
+		
+		//gets digger/ pxl center / row and column
+		this.digger = (Digger) this.game.getEntities().get(0);
+		this.diggerCenter = this.digger.getCenter();
+		this.dRow = (int) (this.diggerCenter.getY()/this.game.getBlockSize());
+		this.dColumn= (int) (this.diggerCenter.getX()/this.game.getBlockSize());
+		
+		
+	}
+	
+	public ArrayList<int[]> getNeighbors(int row, int column){
+		
+		ArrayList<int[]> list = new ArrayList<int[]>();
+		
+		//directly above
+		try{
+			if(this.map[row-1][column]){
+				int[] pt = new int[2];
+				pt[0]=row-1;
+				pt[1]=column;
+				list.add(pt);
+				this.map[row+1][column] = false;
+			}
+		}catch(IndexOutOfBoundsException e){}
+		
+		//directly below
+		try{
+			if(this.map[row+1][column]){
+				int[] pt = new int[2];
+				pt[0]=row+1;
+				pt[1]=column;
+				list.add(pt);
+				this.map[row+1][column] = false;
+			}
+		}catch(IndexOutOfBoundsException e){}
+			
+		//directly right
+		try{
+			if(this.map[row][column+1]){
+				int[] pt = new int[2];
+				pt[0]=column+1;
+				pt[1]=row;
+				list.add(pt);
+				this.map[row][column+1] = false;
+			}
+		}catch(IndexOutOfBoundsException e){}
+		
+		//directly left
+		try{
+			if(this.map[row][column-1]){
+				int[] pt = new int[2];
+				pt[0]=row;
+				pt[1]=column-1;
+				list.add(pt);
+				this.map[row][column-1] = false;
+			}
+		}catch(IndexOutOfBoundsException e){}
+		
+		return list;
+		
+		if (list.size() > 1)
+	}
+	
+	public void updatePaths(){
+		
+	}
+	
+	/**
+	 * returns shortest pathway.
+	 *
+	 * @return
+	 */
+	public ArrayList<int[]> findPath(){
+		//
+		ArrayList<int[]> points = getNeighbors(this.eRow,this.eColumn);
+		
+		
+		
+	}
+	
+	
+	public ArrayList<int[]> findPathHelper(ArrayList<int[]> point){
+	
+
+}

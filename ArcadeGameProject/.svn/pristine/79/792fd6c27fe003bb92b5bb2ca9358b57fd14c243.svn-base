@@ -1,0 +1,10 @@
+import java.awt.Color;
+import java.awt.Shape;
+
+
+public interface Entity {
+	void timePassed();
+	Shape getShape();
+	Color getColor();
+
+}

@@ -1,0 +1,204 @@
+import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+import java.awt.geom.Rectangle2D;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.swing.ImageIcon;
+
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
+
+public class Gold implements Entity {
+
+	private Point2D.Double centerPoint;
+	private boolean fall = false;
+	private double vx = 0;
+	private double vy = 0;
+	private WorldComponent game;
+	private double size;
+	private int row;
+	private int column;
+	private boolean broken = false;
+	private boolean willBrake;
+	private boolean isFalling = false;
+	private Digger digger;
+	private int wait = 0;
+	private Color color;
+
+	public Gold(Point2D.Double pt, double size, WorldComponent game) {
+		this.game = game;
+		this.centerPoint = pt;
+		this.size = size;
+		this.centerPoint.x += this.size / 2;
+		this.centerPoint.y += this.size / 2;
+		this.column = (int) (pt.x / this.size);
+		this.row = (int) (pt.y / this.size);
+		this.digger = (Digger) this.game.getEntities().get(0);
+		this.color = new Color(255, 255, 0);
+	}
+
+	@SuppressWarnings("static-access")
+	@Override
+	public void timePassed() {
+
+		if (this.broken) {
+			Point2D.Double pt = this.digger.getCenter();
+			if (Point2D.Double.distance(this.centerPoint.x, this.centerPoint.y,
+					pt.getX(), pt.getY()) < this.size) {
+				this.game.addPoints(this);
+			}
+		} else {
+			// trys to fall
+			boolean[][] map = this.game.getMap();
+
+			// coverts to rows and columns
+			this.row = (int) ((this.centerPoint.y - this.size / 2) / this.size);
+			this.column = (int) (this.centerPoint.x / this.size);
+
+			// if not bottom row and underneath is empty
+			if (this.row + 1 < 16 && map[this.row + 1][this.column]) {
+
+				if (this.row + 2 < 16 && map[this.row + 2][this.column]) {
+					this.willBrake = true;
+				}
+
+				// wait to fall
+				if (this.wait >= 200
+						&& (this.centerPoint.x - this.size / 2) % this.size == 0) {
+					this.isFalling = true;
+					this.vy = 1.25;
+
+				} else {
+					// if its falling and in dirt
+					if (!map[this.row][this.column]) {
+						this.wait++;
+						this.isFalling = true;
+						//make it shake
+						if (this.wait % 2 == 0) {
+							this.centerPoint.x += 1;
+						} else {
+							this.centerPoint.x -= 1;
+						}
+					} else {
+						this.isFalling = true;
+						this.vy = 1.25;
+					}
+				}
+
+			} else {
+				this.vy = 0;
+				this.isFalling = false;
+				this.wait = 0;
+				if (this.willBrake)
+					this.broken = true;
+			} // end fall
+
+			// trys to be pushed
+			Point2D.Double pt1 = this.digger.getCenter();
+			// Point2D.Double pt1 = new
+			// Point2D.Double(this.digger.getX(),this.digger.getY());
+			// pt1.x+=this.size/2;
+			// pt1.y+=this.size/2;
+			if (Point2D.Double.distance(this.centerPoint.x + this.size / 2,
+					this.centerPoint.y + this.size / 2, pt1.getX() + this.size
+							/ 2, pt1.getY()) < this.size - this.size / 8
+					&& this.row == (int)(this.digger.getCenter().getY()/50) && !this.isFalling) {
+				this.vx = this.digger.getVxy()[0];
+				// this.vy = this.digger.getVxy()[1];
+			}
+			if (this.game.isInside(new Point2D.Double(this.centerPoint.x + vx,
+					this.centerPoint.y + vy))) {
+				this.centerPoint.x += vx;
+				this.centerPoint.y += vy;
+			}
+
+			if ((this.centerPoint.x - this.size / 2) % this.size == 0
+					|| (this.centerPoint.y - this.size / 2) % this.size == 0
+					&& this.isFalling) {
+				this.vx = 0;
+				this.vy = 0;
+
+			}
+		}
+
+	}
+
+	@Override
+	public Shape getShape() {
+		double x = this.centerPoint.x;
+		double y = this.centerPoint.y;
+
+		if (!this.broken) {
+//			Ellipse2D.Double shape = new Ellipse2D.Double(x - this.size / 2, y
+//					- this.size / 2, this.size, this.size);
+//			return shape;
+			return null;
+		}
+		return new Rectangle2D.Double(x - this.size / 2, y + this.size / 6,
+				this.size, 2 * this.size / 6);
+	}
+
+	@Override
+	public Color getColor() {
+		// TODO Auto-generated method stub.
+		if (this.broken)
+			return new Color(255, 140, 0);
+		// return Color.orange;
+//		return this.color;
+		return null;
+	}
+
+	@Override
+	public int getPoints() {
+		// TODO Auto-generated method stub.
+		String wavFile = new String(System.getProperty("user.dir")+"/src/sounds/coin.wav");
+		InputStream in = null;
+		try {
+			in = new FileInputStream(wavFile);
+		} catch (FileNotFoundException exception) {
+			// TODO Auto-generated catch-block stub.
+			exception.printStackTrace();
+		}
+		AudioStream audio = null;
+		try {
+			audio = new AudioStream(in);
+		} catch (IOException exception) {
+			// TODO Auto-generated catch-block stub.
+			exception.printStackTrace();
+		}
+		AudioPlayer.player.start(audio);
+		
+		return 500;
+	}
+
+	@Override
+	public Double getCenter() {
+		// TODO Auto-generated method stub.
+		return this.centerPoint;
+	}
+
+	public boolean getBroken() {
+		return this.broken;
+	}
+
+	public boolean getIsFalling() {
+		return this.isFalling;
+	}
+
+	public void moveCenter(int dx, int dy) {
+		this.centerPoint.x += dx;
+		this.centerPoint.y += dy;
+	}
+
+	@Override
+	public ImageIcon getImage() {
+		// TODO Auto-generated method stub.
+		return new ImageIcon(System.getProperty("user.dir") + "/src/images/gold.png");
+	}
+
+}

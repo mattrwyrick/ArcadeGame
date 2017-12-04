@@ -1,0 +1,169 @@
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+
+public class Pathway {
+
+	private ArrayList<int[]> path;
+	private boolean[][] map;
+	private WorldComponent game;
+	private Digger digger;
+	private Point2D.Double diggerCenter;
+	private int dRow;
+	private int dColumn;
+
+	/**
+	 * Pathway Constructor
+	 * 
+	 * @param game
+	 * @param center
+	 */
+	public Pathway(WorldComponent game) {
+		this.game = game;
+		this.map = new boolean[16][24];
+		// makes clone of map to mark pathways
+		// this.map = game.getMap().clone();
+		for (int i = 0; i < 16; i++)
+			for (int j = 0; j < 24; j++) {
+				this.map[i][j] = game.getMap()[i][j];
+			}
+
+		// gets digger/ pxl center / row and column
+		this.digger = (Digger) this.game.getEntities().get(0);
+		this.diggerCenter = this.digger.getCenter();
+		this.dRow = (int) (this.diggerCenter.getY() / this.game.getBlockSize());
+		this.dColumn = (int) (this.diggerCenter.getX() / this.game
+				.getBlockSize());
+
+	}
+
+	public ArrayList<int[]> getNeighbors(int row, int column) {
+		// fill given space with dirt
+		this.map[row][column] = false;
+
+		ArrayList<int[]> list = new ArrayList<int[]>();
+
+		// directly above
+		try {
+			if (this.map[row - 1][column]) {
+				int[] pt = new int[2];
+				pt[0] = row - 1;
+				pt[1] = column;
+				list.add(pt);
+				this.map[row - 1][column] = false;
+			}
+		} catch (IndexOutOfBoundsException e) {
+		}
+		// directly right
+		try {
+			if (this.map[row][column + 1]) {
+				int[] pt = new int[2];
+				pt[0] = row;
+				pt[1] = column + 1;
+				list.add(pt);
+				this.map[row][column + 1] = false;
+			}
+		} catch (IndexOutOfBoundsException e) {
+		}
+		// directly below
+		try {
+			if (this.map[row + 1][column]) {
+				int[] pt = new int[2];
+				pt[0] = row + 1;
+				pt[1] = column;
+				list.add(pt);
+				this.map[row + 1][column] = false;
+			}
+		} catch (IndexOutOfBoundsException e) {
+		}
+
+		// directly left
+		try {
+			if (this.map[row][column - 1]) {
+				int[] pt = new int[2];
+				pt[0] = row;
+				pt[1] = column - 1;
+				list.add(pt);
+				this.map[row][column - 1] = false;
+			}
+		} catch (IndexOutOfBoundsException e) {
+		}
+
+		return list;
+	}
+
+	/**
+	 * call this method outside of Pathway
+	 * 
+	 * 
+	 * this is the primary method returns first point from shortest pathway.
+	 * 
+	 * @return
+	 */
+	public int[] findPath(int row, int column) {
+		// gets neighbors from start
+		ArrayList<int[]> points = getNeighbors(row, column);
+
+		// return if 1 direction initially
+		if (points.size() == 1) {
+			// System.out.println("returned");
+			System.out.println("one direction initially");
+			return points.get(0);
+
+		}
+
+		// check if digger location == neighbor location
+		for (int i = 0; i < points.size(); i++) {
+			System.out.println("shouldn't see this first");
+			if (points.get(i)[0] == this.dRow
+					&& points.get(i)[1] == this.dColumn) {
+				return points.get(i);
+			}
+		}
+
+		// makes pathway(s) for starting neighbors
+		for (int j = 0; j < points.size(); j++) {
+			if (findPathHelper(points.get(j))) {
+				return points.get(j);
+			}
+		}
+		return points.get(0);
+	}
+
+	/**
+	 * takes in starting point traces out tunnels if digger is found returns
+	 * true;
+	 * 
+	 * @param start
+	 * @return
+	 */
+	public boolean findPathHelper(int[] start) {
+
+		// get neighbors
+		ArrayList<int[]> points = getNeighbors(start[0], start[1]);
+		System.out.println("neighbors of neigbors = " + points.size());
+
+		// base-case / no neighbors = dead end = false
+		if (points.size() == 0) {
+			return false;
+		}
+
+		// check if digger location == neighbor locations
+		for (int i = 0; i < points.size(); i++) {
+			if (points.get(i)[0] == this.dRow
+					&& points.get(i)[1] == this.dColumn) {
+				return true;
+			}
+		}
+
+		// recursion - check neighbor points of this point's neighboring ones.
+		for (int i = 0; i < points.size(); i++) {
+			if (findPathHelper(points.get(i))) {
+				System.out.println(points.get(i));
+				return true;
+			}
+		}
+		return false;
+
+	}
+
+}
